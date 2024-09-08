@@ -3,6 +3,7 @@ using System.Net.Mail;
 using System.Net;
 using EmailService.Models;
 using EmailService.MailTemplate;
+using Microsoft.Extensions.Options;
 
 namespace EmailService
 {
@@ -10,15 +11,13 @@ namespace EmailService
     {
         private readonly ILogger<Worker> _logger;
         private readonly IUserRepo _userRepo;
-        private const string FromMail = "****";
-        private const string Password = "****";
-        private const string SMTPServer = "smtp.office365.com";
-        private const int SMPTPort = 587;
+        private MailSettings _mailSettings;        
 
-        public Worker(ILogger<Worker> logger, IUserRepo userRepo)
+        public Worker(ILogger<Worker> logger, IUserRepo userRepo, IOptions<MailSettings> options)
         {
             _logger = logger;
             _userRepo = userRepo;
+            _mailSettings = options.Value;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -43,16 +42,16 @@ namespace EmailService
         {
             try
             {
-                var fromAddress = new MailAddress(FromMail, "rajender");
+                var fromAddress = new MailAddress(_mailSettings.FromEmail, "rajender");
                 var toAddress = new MailAddress(user.Email, user.UserName);
-                string fromPassword = Password;
+                string fromPassword = _mailSettings.Password;
                 string  body = MailSubject.GetMailSubject(user.UserName,user.GatepassNumber, DateTime.Now.AddDays(1));
                 string subject = "This is your daily email.";
 
                 var smtp = new SmtpClient
                 {
-                    Host = SMTPServer,
-                    Port = SMPTPort,
+                    Host = _mailSettings.SmtpServer,
+                    Port = _mailSettings.SmtpPort,
                     EnableSsl = true,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
